@@ -1,47 +1,51 @@
-const yargs = require("yargs/yargs");
-const { hideBin } = require("yargs/helpers");
-const pkg = require("./package.json");
-const { addNote, printNotes, removeNote } = require("./notes.controller");
+const chalk = require("chalk");
+const fs = require("fs/promises");
+const express = require("express");
+const { addNote, getNotes, updateNote } = require("./notes.controller");
 
-const argv = yargs(hideBin(process.argv))
-  .version(pkg.version)
+const port = 3000;
+const app = express();
 
-  .command({
-    command: "add",
-    describe: "Add new note to list",
-    builder: {
-      title: {
-        type: "string",
-        describe: "Note title",
-        demandOption: true,
-      },
-    },
-    handler({ title }) {
-      addNote(title);
-    },
-  })
+app.set("view engine", "ejs");
+app.set("views", "pages");
 
-  .command({
-    command: "list",
-    describe: "Print all notes",
-    async handler() {
-      await printNotes();
-    },
-  })
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-  .command({
-    command: "remove",
-    describe: "Remove note by id",
-    builder: {
-      id: {
-        type: "string",
-        describe: "ID of the note to remove",
-        demandOption: true,
-      },
-    },
-    async handler({ id }) {
-      await removeNote(id);
-    },
-  })
+app.get("/", async (req, res) => {
+  res.render("index", {
+    title: "Express App",
+    notes: await getNotes(),
+  });
+});
 
-  .parse();
+app.post("/", async (req, res) => {
+  await addNote(req.body.title);
+
+  res.render("index", {
+    title: "Express App",
+    notes: await getNotes(),
+  });
+});
+
+app.put("/notes/:id", async (req, res) => {
+  const id = req.params.id;
+  const { title } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: "Title is required" });
+  }
+
+  try {
+    const updated = await updateNote(id, title);
+    if (!updated) {
+      return res.status(404).json({ error: "Note not found" });
+    }
+    res.json({ message: "Note updated" });
+  } catch (e) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.listen(port, () => {
+  console.log(chalk.green(`Server has been started on port ${port}...`));
+});

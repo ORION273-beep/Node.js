@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Node simple server</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container">
+    <h1>This is working!</h1>
+    <form action="/" method="post" class="mb-2">
+      <div class="form-group mb-2">
+        <input type="text" class="form-control" name="title" required />
+      </div>
+      <button class="btn btn-primary" type="submit">Create!</button>
+    </form>
+    <div class="card">
+      <ul class="list-group">
+        <% for (let i = 0; i < notes.length; i++) { %>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span class="note-title" data-id="<%= notes[i].id %>"><%= notes[i].title %></span>
+            <button class="btn btn-sm btn-warning edit-btn" data-id="<%= notes[i].id %>">Редактировать</button>
+          </li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.edit-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.getAttribute('data-id');
+        const spanTitle = button.closest('li').querySelector('.note-title');
+        const oldTitle = spanTitle.textContent;
+
+        const newTitle = prompt('Введите новое название заметки:', oldTitle);
+        if (newTitle === null) {
+          return;
+        }
+        if (newTitle.trim() === '') {
+          alert('Название не может быть пустым.');
+          return;
+        }
+
+        fetch(`/notes/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title: newTitle })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error('Ошибка обновления заметки');
+          return res.json();
+        })
+        .then(data => {
+          spanTitle.textContent = newTitle;
+          alert('Заметка успешно обновлена');
+        })
+        .catch(err => {
+          alert('Ошибка обновления: ' + err.message);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
